@@ -26,79 +26,87 @@
             overflow: hidden;
         }
 
-        /* 讓 iframe 稍微放大並往上移，遮掉官方原本的導覽列 */
+        /* 讓 iframe 完整佔滿畫面，微調 top 讓官方標題剛好露出或藏好 */
         iframe {
             position: absolute;
-            top: -50px; 
+            top: -40px; 
             left: 0;
             width: 100%;
-            height: calc(100% + 50px);
+            height: calc(100% + 40px);
             border: none;
         }
 
-        /* 透明互動層：用來接收小朋友的左右滑動手勢 */
+        /* 全螢幕透明滑動層：專門用來抓左右滑動 */
         .touch-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: calc(100% - 90px); /* 留給底部按鈕空間 */
+            height: 100%;
             z-index: 5;
             background: transparent;
+            pointer-events: auto;
         }
 
-        /* 頂部遮罩 */
+        /* 頂部遮罩：遮住官方雜亂選單 */
         .top-shield {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 60px;
+            height: 50px;
             background: linear-gradient(to bottom, rgba(26,26,26,0.95), transparent);
             z-index: 10;
             pointer-events: none;
         }
 
-        /* 底部兒童專用控制列 */
-        .bottom-bar {
+        /* 懸浮左右超大透明按鈕（貼在畫面左右側，不遮擋主圖下方） */
+        .side-btn {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 90px;
-            background: rgba(255, 255, 255, 0.95);
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 20;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
-            padding: 0 20px;
-        }
-
-        /* 超大童趣按鈕 */
-        .kid-btn {
-            background-color: #ffcb05;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 120px;
+            background-color: rgba(255, 203, 5, 0.6);
             color: #1a3c8e;
-            font-size: 22px;
-            font-weight: bold;
-            padding: 12px 24px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border: none;
-            border-radius: 35px;
-            box-shadow: 0 5px 0 #c79d00;
+            z-index: 15;
             cursor: pointer;
-            outline: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        .kid-btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 1px 0 #c79d00;
+        .side-btn:active {
+            background-color: rgba(255, 203, 5, 0.9);
+        }
+        #prev-btn {
+            left: 0;
+            border-top-right-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+        #next-btn {
+            right: 0;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
         }
 
-        .center-info {
-            font-size: 20px;
+        /* 底部極簡編號提示（不再遮擋圖片） */
+        .bottom-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffcb05;
+            font-size: 18px;
             font-weight: bold;
-            color: #3b5ba9;
+            padding: 6px 16px;
+            border-radius: 20px;
+            z-index: 15;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
     </style>
 </head>
@@ -107,32 +115,29 @@
     <div class="iframe-container" id="container">
         <div class="top-shield"></div>
 
-        <!-- 嵌入寶可夢圖鑑 iframe，預設從 0001 開始 -->
+        <!-- 嵌入寶可夢圖鑑 iframe -->
         <iframe id="pokedex-frame" src="https://tw.portal-pokemon.com/play/pokedex/0001" title="寶可夢兒童圖鑑"></iframe>
+
+        <!-- 左右懸浮按鈕 -->
+        <button class="side-btn" id="prev-btn" onclick="prevPokemon()">◀</button>
+        <button class="side-btn" id="next-btn" onclick="nextPokemon()">▶</button>
 
         <!-- 觸控滑動攔截層 -->
         <div class="touch-layer" id="touchLayer"></div>
 
-        <!-- 底部大按鈕操作列 -->
-        <div class="bottom-bar">
-            <button class="kid-btn" onclick="prevPokemon()">⬅️ 上一隻</button>
-            <div class="center-info" id="id-display">No. 0001</div>
-            <button class="kid-btn" onclick="nextPokemon()">下一隻 ➡️</button>
-        </div>
+        <!-- 底部極簡編號 -->
+        <div class="bottom-indicator" id="id-display">No. 0001</div>
     </div>
 
     <script>
         let currentId = 1;
-        const maxId = 1025; // 目前寶可夢大約的總數
+        const maxId = 1025;
 
         function updatePokemon() {
-            // 將數字補齊為 4 位數格式 (例如 1 變成 "0001")
             let paddedId = String(currentId).padStart(4, '0');
             let newUrl = `https://tw.portal-pokemon.com/play/pokedex/${paddedId}`;
             
-            // 更新 iframe 網址
             document.getElementById('pokedex-frame').src = newUrl;
-            // 更新底部顯示編號
             document.getElementById('id-display').innerText = `No. ${paddedId}`;
         }
 
@@ -150,10 +155,9 @@
             }
         }
 
-        // 支援手機觸控左右滑動 (Swipe)
+        // 手機觸控左右滑動 (Swipe) 邏輯
         let touchStartX = 0;
         let touchEndX = 0;
-
         const touchLayer = document.getElementById('touchLayer');
 
         touchLayer.addEventListener('touchstart', e => {
@@ -166,14 +170,12 @@
         }, false);
 
         function handleSwipe() {
-            let threshold = 50; // 滑動距離門檻
+            let threshold = 40; // 降低滑動門檻，更好翻頁
             if (touchEndX < touchStartX - threshold) {
-                // 往左滑 -> 下一隻
-                nextPokemon();
+                nextPokemon(); // 往左滑 -> 下一隻
             }
             if (touchEndX > touchStartX + threshold) {
-                // 右滑 -> 上一隻
-                prevPokemon();
+                prevPokemon(); // 往右滑 -> 上一隻
             }
         }
     </script>
