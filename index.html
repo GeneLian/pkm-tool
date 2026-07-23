@@ -20,7 +20,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* 主容器 */
         .app-container {
             position: relative;
             width: 100%;
@@ -28,7 +27,6 @@
             overflow: hidden;
         }
 
-        /* 讓 iframe 完整呈現，並允許內部捲動 */
         iframe {
             position: absolute;
             top: -30px;
@@ -36,10 +34,8 @@
             width: 100%;
             height: calc(100% + 30px);
             border: none;
-            /* 恢復預設，讓使用者可以上下捲動 iframe 內的網頁 */
         }
 
-        /* 頂部遮罩：擋住官方雜亂選單 */
         .top-shield {
             position: absolute;
             top: 0;
@@ -51,7 +47,6 @@
             pointer-events: none;
         }
 
-        /* 懸浮左右翻頁按鈕（浮在畫面上兩側，不影響中間捲動） */
         .floating-btn {
             position: absolute;
             top: 50%;
@@ -83,7 +78,7 @@
         #next-btn {
             right: 0;
             border-top-left-radius: 20px;
-            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
         }
     </style>
 </head>
@@ -105,11 +100,16 @@
     <script>
         let currentId = 1;
         const maxId = 1025;
+        const iframe = document.getElementById('pokedex-frame');
 
         function updatePokemon() {
             let paddedId = String(currentId).padStart(4, '0');
             let newUrl = `https://tw.portal-pokemon.com/play/pokedex/${paddedId}`;
-            document.getElementById('pokedex-frame').src = newUrl;
+            
+            // 只有當網址真的不同時才設定，避免重複載入
+            if (iframe.src !== newUrl) {
+                iframe.src = newUrl;
+            }
         }
 
         function nextPokemon() {
@@ -126,7 +126,30 @@
             }
         }
 
-        // 支援全螢幕左右滑動 (Swipe) 翻頁，同時保留上下捲動
+        // 關鍵：監聽 iframe 內部頁面載入完成事件，自動同步當前編號
+        iframe.addEventListener('load', () => {
+            try {
+                // 嘗試讀取 iframe 當前的網址 (同源政策下，如果是相同網域或特定嵌入情況可讀取)
+                let currentHref = iframe.contentWindow.location.href;
+                // 從網址中抓取最後的數字 (例如 .../pokedex/0111 抓出 0111)
+                let match = currentHref.match(/\/pokedex\/(\d+)/);
+                if (match && match[1]) {
+                    let parsedId = parseInt(match[1], 10);
+                    if (!isNaN(parsedId) && parsedId !== currentId) {
+                        currentId = parsedId;
+                    }
+                }
+            } catch (e) {
+                // 如果因為跨網域安全性限制無法直接讀取 contentWindow.href，我們改用備用方案：
+                // 從我們自己設定的 src 結尾反推
+                let match = iframe.src.match(/\/pokedex\/(\d+)/);
+                if (match && match[1]) {
+                    currentId = parseInt(match[1], 10);
+                }
+            }
+        });
+
+        // 支援全螢幕左右滑動 (Swipe) 翻頁
         let touchStartX = 0;
         let touchStartY = 0;
         let touchEndX = 0;
@@ -149,12 +172,11 @@
             let diffX = touchEndX - touchStartX;
             let diffY = touchEndY - touchStartY;
 
-            // 判斷是否為「水平左右滑動」大於「垂直上下捲動」，避免影響正常上下看內容
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
                 if (diffX < 0) {
-                    nextPokemon(); // 往左滑 -> 下一隻
+                    nextPokemon();
                 } else {
-                    prevPokemon(); // 往右滑 -> 上一隻
+                    prevPokemon();
                 }
             }
         }
