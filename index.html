@@ -2,25 +2,102 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>寶可夢兒童圖鑑測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>寶可夢兒童圖鑑</title>
     <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        iframe {
+
+        /* 容器：用來包住 iframe 並進行適度位移或裁切 */
+        .iframe-container {
+            position: relative;
             width: 100%;
             height: 100%;
+            overflow: hidden;
+        }
+
+        /* 調整 iframe 位置，嘗試把官方上方雜亂的導覽列往上推出畫面 */
+        iframe {
+            position: absolute;
+            top: -60px; 
+            left: 0;
+            width: 100%;
+            height: calc(100% + 60px);
             border: none;
+        }
+
+        /* 覆蓋層：用來擋住頂部，避免小朋友亂點到官方的其他選單 */
+        .top-shield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: linear-gradient(to bottom, rgba(26,26,26,0.9), transparent);
+            z-index: 10;
+            pointer-events: auto; /* 攔截點擊 */
+        }
+
+        /* 底部導覽提示條（未來可以放超大朗讀按鈕或翻頁箭頭） */
+        .bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* 預留的大按鈕樣式 */
+        .kid-btn {
+            background-color: #ffcb05;
+            color: #3b5ba9;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 40px;
+            box-shadow: 0 4px 0 #c79d00;
+            cursor: pointer;
+        }
+        .kid-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #c79d00;
         }
     </style>
 </head>
 <body>
 
-    <iframe src="https://tw.portal-pokemon.com/play/pokedex/" title="寶可夢圖鑑"></iframe>
+    <div class="iframe-container">
+        <!-- 頂部防護罩，避免誤觸官方選單 -->
+        <div class="top-shield"></div>
+
+        <!-- 嵌入官方圖鑑 -->
+        <iframe src="https://tw.portal-pokemon.com/play/pokedex/" title="寶可夢兒童圖鑑"></iframe>
+
+        <!-- 底部專屬互動列 -->
+        <div class="bottom-bar">
+            <button class="kid-btn" onclick="alert('準備加入左右滑動與語音功能！')">🔊 聽名字</button>
+        </div>
+    </div>
 
 </body>
 </html>
