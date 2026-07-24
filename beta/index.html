@@ -1,1 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>寶可夢兒童圖鑑</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
 
+        .app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        iframe {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            width: 100%;
+            height: calc(100% + 30px);
+            border: none;
+        }
+
+        .top-shield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to bottom, rgba(11,29,58,0.95), transparent);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .floating-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 100px;
+            background-color: rgba(255, 203, 5, 0.7);
+            color: #1a3c8e;
+            font-size: 32px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            z-index: 20;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .floating-btn:active {
+            background-color: rgba(255, 203, 5, 1);
+        }
+
+        #prev-btn {
+            left: 0;
+            border-top-right-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        #next-btn {
+            right: 0;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="appContainer">
+        
+        <div class="top-shield"></div>
+
+        <!-- 嵌入寶可夢圖鑑 iframe -->
+        <iframe id="pokedex-frame" src="https://tw.portal-pokemon.com/play/pokedex/0001" title="寶可夢兒童圖鑑"></iframe>
+
+        <!-- 左右懸浮翻頁按鈕 -->
+        <button class="floating-btn" id="prev-btn" onclick="prevPokemon()">◀</button>
+        <button class="floating-btn" id="next-btn" onclick="nextPokemon()">▶</button>
+
+    </div>
+
+    <script>
+        let currentId = 1;
+        const maxId = 1025;
+        const iframe = document.getElementById('pokedex-frame');
+
+        function updatePokemon() {
+            let paddedId = String(currentId).padStart(4, '0');
+            let newUrl = `https://tw.portal-pokemon.com/play/pokedex/${paddedId}`;
+            iframe.src = newUrl;
+        }
+
+        function nextPokemon() {
+            if (currentId < maxId) {
+                currentId++;
+                updatePokemon();
+            }
+        }
+
+        function prevPokemon() {
+            if (currentId > 1) {
+                currentId--;
+                updatePokemon();
+            }
+        }
+
+        // 由於跨網域安全限制，我們改由監聽 iframe 每次重新載入時，
+        // 從我們自己發動的 src 或利用全域狀態來確保同步。
+        // 若小朋友在內部點擊了其他連結，我們最好的策略是：
+        // 既然這是給學齡前兒童使用的工具，通常會希望流程是單純「左右滑動/點擊看下一隻」。
+        // 如果允許他們在內部亂點跳號，因為瀏覽器資安限制無法回傳，
+        // 我們可以考慮把 iframe 內部的超連結點擊導向攔截，或者專心用我們的左右按鈕作為核心操作！
+
+        // 支援全螢幕左右滑動 (Swipe) 翻頁
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        const container = document.getElementById('appContainer');
+
+        container.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, false);
+
+        container.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            let diffX = touchEndX - touchStartX;
+            let diffY = touchEndY - touchStartY;
+
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX < 0) {
+                    nextPokemon();
+                } else {
+                    prevPokemon();
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
