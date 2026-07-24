@@ -27,35 +27,78 @@
             overflow: hidden;
         }
 
+        /* 調整 iframe 位置，上方留給控制列，下方正常捲動 */
         iframe {
             position: absolute;
-            top: -30px;
+            top: 55px;
             left: 0;
             width: 100%;
-            height: calc(100% + 30px);
+            height: calc(100% - 55px);
             border: none;
         }
 
-        .top-shield {
+        /* 頂部整合控制列：包含返回首隻、手動輸入框與快速跳轉 */
+        .top-control-bar {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 50px;
-            background: linear-gradient(to bottom, rgba(11,29,58,0.95), transparent);
-            z-index: 10;
-            pointer-events: none;
+            height: 55px;
+            background: rgba(11, 29, 58, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 30;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            padding: 0 10px;
         }
 
+        .top-control-bar label {
+            color: #ffcb05;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* 手動輸入框樣式 */
+        .id-input {
+            width: 85px;
+            height: 36px;
+            background-color: #fff;
+            border: 2px solid #ffcb05;
+            border-radius: 18px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a3c8e;
+            outline: none;
+        }
+
+        .go-btn {
+            background-color: #ffcb05;
+            color: #1a3c8e;
+            border: none;
+            border-radius: 18px;
+            padding: 6px 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .go-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 左右懸浮翻頁按鈕 */
         .floating-btn {
             position: absolute;
-            top: 50%;
+            top: 55%;
             transform: translateY(-50%);
-            width: 60px;
-            height: 100px;
-            background-color: rgba(255, 203, 5, 0.7);
+            width: 55px;
+            height: 95px;
+            background-color: rgba(255, 203, 5, 0.75);
             color: #1a3c8e;
-            font-size: 32px;
+            font-size: 30px;
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -71,14 +114,14 @@
 
         #prev-btn {
             left: 0;
-            border-top-right-radius: 20px;
-            border-bottom-right-radius: 20px;
+            border-top-right-radius: 18px;
+            border-bottom-right-radius: 18px;
         }
 
         #next-btn {
             right: 0;
-            border-top-left-radius: 20px;
-            border-bottom-left-radius: 20px;
+            border-top-left-radius: 18px;
+            border-bottom-left-radius: 18px;
         }
     </style>
 </head>
@@ -86,12 +129,14 @@
 
     <div class="app-container" id="appContainer">
         
-        <div class="top-shield"></div>
+        <div class="top-control-bar">
+            <label for="manualId">編號:</label>
+            <input type="number" id="manualId" class="id-input" min="1" max="1025" value="1" placeholder="0001">
+            <button class="go-btn" onclick="jumpToPokemon()">跳轉</button>
+        </div>
 
-        <!-- 嵌入寶可夢圖鑑 iframe -->
         <iframe id="pokedex-frame" src="https://tw.portal-pokemon.com/play/pokedex/0001" title="寶可夢兒童圖鑑"></iframe>
 
-        <!-- 左右懸浮翻頁按鈕 -->
         <button class="floating-btn" id="prev-btn" onclick="prevPokemon()">◀</button>
         <button class="floating-btn" id="next-btn" onclick="nextPokemon()">▶</button>
 
@@ -101,11 +146,18 @@
         let currentId = 1;
         const maxId = 1025;
         const iframe = document.getElementById('pokedex-frame');
+        const manualInput = document.getElementById('manualId');
 
         function updatePokemon() {
+            // 確保數字在 1 ~ 1025 之間
+            if (currentId < 1) currentId = 1;
+            if (currentId > maxId) currentId = maxId;
+
             let paddedId = String(currentId).padStart(4, '0');
             let newUrl = `https://tw.portal-pokemon.com/play/pokedex/${paddedId}`;
+            
             iframe.src = newUrl;
+            manualInput.value = currentId; // 同步更新輸入框數字
         }
 
         function nextPokemon() {
@@ -122,12 +174,26 @@
             }
         }
 
-        // 由於跨網域安全限制，我們改由監聽 iframe 每次重新載入時，
-        // 從我們自己發動的 src 或利用全域狀態來確保同步。
-        // 若小朋友在內部點擊了其他連結，我們最好的策略是：
-        // 既然這是給學齡前兒童使用的工具，通常會希望流程是單純「左右滑動/點擊看下一隻」。
-        // 如果允許他們在內部亂點跳號，因為瀏覽器資安限制無法回傳，
-        // 我們可以考慮把 iframe 內部的超連結點擊導向攔截，或者專心用我們的左右按鈕作為核心操作！
+        // 手動輸入後點擊跳轉或按 Enter
+        function jumpToPokemon() {
+            let val = parseInt(manualInput.value, 10);
+            if (!isNaN(val)) {
+                if (val >= 1 && val <= maxId) {
+                    currentId = val;
+                    updatePokemon();
+                } else {
+                    alert(`請輸入 1 到 ${maxId} 之間的寶可夢編號！`);
+                    manualInput.value = currentId;
+                }
+            }
+        }
+
+        // 支援在輸入框按 Enter 鍵直接跳轉
+        manualInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                jumpToPokemon();
+            }
+        });
 
         // 支援全螢幕左右滑動 (Swipe) 翻頁
         let touchStartX = 0;
@@ -152,6 +218,7 @@
             let diffX = touchEndX - touchStartX;
             let diffY = touchEndY - touchStartY;
 
+            // 只有水平滑動大於 50 像素時才觸發翻頁
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
                 if (diffX < 0) {
                     nextPokemon();
