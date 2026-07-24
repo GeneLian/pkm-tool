@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>寶可夢兒童圖鑑 v1.3.4</title>
+    <title>寶可夢兒童圖鑑 v1.3.5</title>
     <style>
         * {
             box-sizing: border-box;
@@ -85,10 +85,12 @@
         }
 
         .speak-btn {
-            background-color: #ff5722; /* 讓朗讀按鈕用顯眼的橘紅色，吸引小朋友注意 */
+            background-color: #ff5722; /* 鮮豔橘紅色朗讀按鈕 */
             color: #fff;
-            font-size: 16px;
+            font-size: 15px;
             padding: 6px 12px;
+            min-width: 95px;
+            transition: background-color 0.2s;
         }
 
         .go-btn:active, .speak-btn:active {
@@ -106,7 +108,6 @@
             background-color: #0b1d3a;
         }
 
-        /* 讓 iframe 往上位移並增加高度，把官方首頁按鈕藏在上方控制列後面 */
         iframe {
             position: absolute;
             top: -75px; 
@@ -157,11 +158,11 @@
     <div class="app-container" id="appContainer">
         
         <div class="top-control-bar">
-            <span class="version-tag">v1.3.4</span>
+            <span class="version-tag">v1.3.5</span>
             <label for="manualId">編號:</label>
             <input type="number" id="manualId" class="id-input" min="1" max="1025" value="1" placeholder="0001">
             <button class="go-btn" onclick="jumpToPokemon()">跳轉</button>
-            <button class="speak-btn" onclick="speakPokemonName()" title="大聲朗讀">🔊 唸名字</button>
+            <button class="speak-btn" id="speakBtn" onclick="speakPokemonName()" title="大聲朗讀">🔊 唸名字</button>
         </div>
 
         <div class="iframe-viewport">
@@ -178,26 +179,10 @@
         const maxId = 1025;
         const iframe = document.getElementById('pokedex-frame');
         const manualInput = document.getElementById('manualId');
+        const speakBtn = document.getElementById('speakBtn');
 
-        // 簡易常用寶可夢名稱字典（後續可隨時擴充）
-        const pokemonNames = {
-            1: "妙蛙種子",
-            2: "妙蛙草",
-            3: "妙蛙花",
-            4: "小火龍",
-            5: "火恐龍",
-            6: "噴火龍",
-            7: "傑尼龜",
-            8: "卡咪龜",
-            9: "水箭龜",
-            25: "皮卡丘",
-            26: "雷丘",
-            39: "胖丁",
-            52: "喵喵",
-            133: "伊布",
-            143: "卡比獸",
-            150: "超夢"
-        };
+        // 快取字典：存放已查詢到的寶可夢中文名字，避免重複請求 API
+        const pokemonNameCache = {};
 
         function updatePokemon() {
             if (currentId < 1) currentId = 1;
@@ -210,22 +195,53 @@
             manualInput.value = currentId;
         }
 
+        // 從開源 PokéAPI 動態獲取繁體中文名稱
+        async function getPokemonName(id) {
+            if (pokemonNameCache[id]) {
+                return pokemonNameCache[id];
+            }
+
+            try {
+                let response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+                if (!response.ok) throw new Error('API 請求失敗');
+                let data = await response.json();
+
+                // 優先尋找繁體中文 (zh-Hant)，若無則找簡體中文 (zh-Hans)
+                let nameObj = data.names.find(n => n.language.name === 'zh-Hant') || 
+                              data.names.find(n => n.language.name === 'zh-Hans');
+
+                let name = nameObj ? nameObj.name : `第 ${id} 號寶可夢`;
+                pokemonNameCache[id] = name; // 存入快取
+                return name;
+            } catch (error) {
+                console.error("無法取得寶可夢名稱:", error);
+                return `第 ${id} 號寶可夢`; // 發生網路錯誤時的防呆名稱
+            }
+        }
+
         // 語音朗讀核心功能
-        function speakPokemonName() {
+        async function speakPokemonName() {
             if (!('speechSynthesis' in window)) {
                 alert("您的瀏覽器不支援語音朗讀功能！");
                 return;
             }
 
-            // 取得對應名字，若字典裡沒有則預設念出「第 X 號寶可夢」
-            let name = pokemonNames[currentId] || `第 ${currentId} 號寶可夢`;
-            
-            // 建立語音朗讀請求
+            // 顯示載入狀態
+            speakBtn.innerText = "⏳ 查詢中...";
+            speakBtn.disabled = true;
+
+            let name = await getPokemonName(currentId);
+
+            // 恢復按鈕狀態
+            speakBtn.innerText = "🔊 唸名字";
+            speakBtn.disabled = false;
+
+            // 執行語音朗讀
             let utterance = new SpeechSynthesisUtterance(name);
-            utterance.lang = 'zh-TW'; // 設定為台灣繁體中文口音
-            utterance.rate = 0.9;     // 語速稍微放慢，適合小朋友聆聽
+            utterance.lang = 'zh-TW'; // 台灣中文口音
+            utterance.rate = 0.9;     // 語速稍慢適合兒童
             
-            window.speechSynthesis.cancel(); // 停止前面尚未念完的語音，確保即時反應
+            window.speechSynthesis.cancel(); // 停止上一段語音
             window.speechSynthesis.speak(utterance);
         }
 
