@@ -27,7 +27,7 @@
             overflow: hidden;
         }
 
-        /* 調整 iframe 位置，上方留給控制列，下方正常捲動 */
+        /* 讓 iframe 佔滿整個畫面，允許內部正常捲動 */
         iframe {
             position: absolute;
             top: 55px;
@@ -37,7 +37,7 @@
             border: none;
         }
 
-        /* 頂部整合控制列：包含返回首隻、手動輸入框與快速跳轉 */
+        /* 頂部手動控制列：包含編號輸入與快速跳轉 */
         .top-control-bar {
             position: absolute;
             top: 0;
@@ -60,7 +60,6 @@
             font-weight: bold;
         }
 
-        /* 手動輸入框樣式 */
         .id-input {
             width: 85px;
             height: 36px;
@@ -149,7 +148,6 @@
         const manualInput = document.getElementById('manualId');
 
         function updatePokemon() {
-            // 確保數字在 1 ~ 1025 之間
             if (currentId < 1) currentId = 1;
             if (currentId > maxId) currentId = maxId;
 
@@ -157,8 +155,18 @@
             let newUrl = `https://tw.portal-pokemon.com/play/pokedex/${paddedId}`;
             
             iframe.src = newUrl;
-            manualInput.value = currentId; // 同步更新輸入框數字
+            manualInput.value = currentId;
         }
+
+        // 關鍵防呆與置中機制：當每隻寶可夢的頁面載入完成後，自動把畫面稍微往下滑動
+        iframe.addEventListener('load', () => {
+            try {
+                // 自動將 iframe 內部視窗往下捲動 180 像素，隱藏上方官方首頁按鈕並讓寶可夢圖片置中
+                iframe.contentWindow.scrollTo(0, 180);
+            } catch (e) {
+                // 若受同源限制無法直接捲動，則不處理（由 CSS 處理）
+            }
+        });
 
         function nextPokemon() {
             if (currentId < maxId) {
@@ -174,7 +182,6 @@
             }
         }
 
-        // 手動輸入後點擊跳轉或按 Enter
         function jumpToPokemon() {
             let val = parseInt(manualInput.value, 10);
             if (!isNaN(val)) {
@@ -188,7 +195,6 @@
             }
         }
 
-        // 支援在輸入框按 Enter 鍵直接跳轉
         manualInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 jumpToPokemon();
@@ -218,7 +224,6 @@
             let diffX = touchEndX - touchStartX;
             let diffY = touchEndY - touchStartY;
 
-            // 只有水平滑動大於 50 像素時才觸發翻頁
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
                 if (diffX < 0) {
                     nextPokemon();
