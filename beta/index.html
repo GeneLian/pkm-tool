@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>寶可夢兒童圖鑑 v1.3.1</title>
+    <title>寶可夢兒童圖鑑 v1.3.2</title>
     <style>
         * {
             box-sizing: border-box;
@@ -27,17 +27,7 @@
             overflow: hidden;
         }
 
-        /* 讓 iframe 佔滿扣除控制列後的畫面 */
-        iframe {
-            position: absolute;
-            top: 55px;
-            left: 0;
-            width: 100%;
-            height: calc(100% - 55px);
-            border: none;
-        }
-
-        /* 頂部手動控制列：整合版本號、編號輸入與跳轉按鈕 */
+        /* 頂部手動控制列 (55px) */
         .top-control-bar {
             position: absolute;
             top: 0;
@@ -54,7 +44,6 @@
             padding: 0 10px;
         }
 
-        /* 版本號標記樣式 */
         .version-tag {
             background-color: #ffcb05;
             color: #1a3c8e;
@@ -99,6 +88,27 @@
             transform: scale(0.95);
         }
 
+        /* 專屬圖鑑顯示區：透過 overflow: hidden 搭配負向 top 來完美裁切掉官方頂部導覽列 */
+        .iframe-viewport {
+            position: absolute;
+            top: 55px;
+            left: 0;
+            width: 100%;
+            height: calc(100% - 55px);
+            overflow: hidden;
+            background-color: #0b1d3a;
+        }
+
+        /* 讓 iframe 往上位移並增加高度，藉此把官方首頁按鈕藏在上方控制列後面 */
+        iframe {
+            position: absolute;
+            top: -75px; 
+            left: 0;
+            width: 100%;
+            height: calc(100% + 75px);
+            border: none;
+        }
+
         /* 左右懸浮翻頁按鈕 */
         .floating-btn {
             position: absolute;
@@ -140,13 +150,15 @@
     <div class="app-container" id="appContainer">
         
         <div class="top-control-bar">
-            <span class="version-tag">v1.3.1</span>
+            <span class="version-tag">v1.3.2</span>
             <label for="manualId">編號:</label>
             <input type="number" id="manualId" class="id-input" min="1" max="1025" value="1" placeholder="0001">
             <button class="go-btn" onclick="jumpToPokemon()">跳轉</button>
         </div>
 
-        <iframe id="pokedex-frame" src="https://tw.portal-pokemon.com/play/pokedex/0001" title="寶可夢兒童圖鑑"></iframe>
+        <div class="iframe-viewport">
+            <iframe id="pokedex-frame" src="https://tw.portal-pokemon.com/play/pokedex/0001" title="寶可夢兒童圖鑑"></iframe>
+        </div>
 
         <button class="floating-btn" id="prev-btn" onclick="prevPokemon()">◀</button>
         <button class="floating-btn" id="next-btn" onclick="nextPokemon()">▶</button>
@@ -169,15 +181,6 @@
             iframe.src = newUrl;
             manualInput.value = currentId;
         }
-
-        // 頁面載入後自動往下捲動，藏起上方首頁按鈕並讓圖片置中
-        iframe.addEventListener('load', () => {
-            try {
-                iframe.contentWindow.scrollTo(0, 180);
-            } catch (e) {
-                // 跨網域限制時略過
-            }
-        });
 
         function nextPokemon() {
             if (currentId < maxId) {
